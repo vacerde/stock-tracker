@@ -42,15 +42,6 @@ const navigation = [
     items: [
       { title: "Stocks", url: "/stocks", icon: TrendingUp },
       { title: "Crypto", url: "/crypto", icon: DollarSign },
-      { title: "Screeners", url: "/screeners", icon: Search },
-    ],
-  },
-  {
-    title: "Tools",
-    items: [
-      { title: "Analytics", url: "/analytics", icon: BarChart3 },
-      { title: "News", url: "/news", icon: BookOpen },
-      { title: "Alerts", url: "/alerts", icon: Bell },
     ],
   },
 ]
