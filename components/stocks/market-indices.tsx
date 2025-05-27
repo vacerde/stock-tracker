@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowUpIcon, ArrowDownIcon, RefreshCwIcon } from "lucide-react"
+import { ArrowUpIcon, ArrowDownIcon, RefreshCwIcon, CircleSlash } from "lucide-react"
 import { getStockQuote, StockQuote } from "@/lib/finnhub-api" // Adjust import path as needed
 
 interface IndexData {
@@ -43,7 +43,7 @@ export function MarketIndices() {
 
   const loadAllIndices = async () => {
     setIndices(prev => prev.map(index => ({ ...index, loading: true, error: false })))
-    
+
     const promises = indicesConfig.map(async (config) => {
       const quote = await fetchIndexData(config.symbol)
       return {
@@ -64,7 +64,7 @@ export function MarketIndices() {
 
     // Refresh data every 30 seconds
     const interval = setInterval(loadAllIndices, 30000)
-    
+
     return () => clearInterval(interval)
   }, [])
 
@@ -97,12 +97,33 @@ export function MarketIndices() {
           Last updated: {lastUpdate.toLocaleTimeString('de-DE').slice(0, 5)}
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {indices.map((index) => (
           <Card key={index.symbol} className="relative">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">{index.name}</CardTitle>
+            <CardHeader className="pb-2 pr-0 pr-2">
+              <CardTitle className="text-sm font-medium">
+                <div className="flex justify-between items-center w-full">
+                  {index.name}
+                  <div className="flex items-center">
+                    {index.error || !index.quote ? (
+                      <div className="text-center py-4">
+                      </div>
+                    ) : (
+                      <Badge
+                        variant={index.quote.changePercent >= 0 ? "default" : "destructive"}
+                        className="flex items-center text-xs mb-1"
+                      >
+                        {index.quote.changePercent >= 0 ?
+                          <ArrowUpIcon className="h-3 w-3 mr-1" /> :
+                          <ArrowDownIcon className="h-3 w-3 mr-1" />
+                        }
+                        {formatChangePercent(index.quote.changePercent)}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {index.loading ? (
@@ -126,16 +147,6 @@ export function MarketIndices() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <Badge 
-                      variant={index.quote.changePercent >= 0 ? "default" : "destructive"} 
-                      className="text-xs mb-1"
-                    >
-                      {index.quote.changePercent >= 0 ? 
-                        <ArrowUpIcon className="h-3 w-3 mr-1" /> : 
-                        <ArrowDownIcon className="h-3 w-3 mr-1" />
-                      }
-                      {formatChangePercent(index.quote.changePercent)}
-                    </Badge>
                     <div className="text-xs text-muted-foreground">
                       H: {formatValue(index.quote.high)}
                     </div>
