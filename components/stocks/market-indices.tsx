@@ -136,25 +136,27 @@ export function MarketIndices() {
                   <div className="text-xs text-muted-foreground">{index.symbol}</div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-2xl font-bold">
-                      {formatValue(index.quote.current)}
+                <>
+                  <div className="text-2xl font-bold">
+                    {formatValue(index.quote.current)}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-muted-foreground">{index.symbol}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatChange(index.quote.change)}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">{index.symbol}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatChange(index.quote.change)}
+                    <div className="text-right">
+                      <div className="text-xs text-muted-foreground">
+                        H: {formatValue(index.quote.high)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        L: {formatValue(index.quote.low)}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs text-muted-foreground">
-                      H: {formatValue(index.quote.high)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      L: {formatValue(index.quote.low)}
-                    </div>
-                  </div>
-                </div>
+                </>
               )}
             </CardContent>
           </Card>
