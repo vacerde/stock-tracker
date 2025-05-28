@@ -32,14 +32,6 @@ export function CryptoDetailHeader({ crypto }: CryptoDetailHeaderProps) {
 
         <div className="flex-1 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Avatar className="h-12 w-12">
-              <AvatarImage
-                src={`https://assets.coingecko.com/coins/images/${crypto.id}/large/${crypto.id}.png`}
-                alt={crypto.name}
-              />
-              <AvatarFallback>{crypto.symbol.slice(0, 2)}</AvatarFallback>
-            </Avatar>
-
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{crypto.name}</h1>
@@ -49,27 +41,6 @@ export function CryptoDetailHeader({ crypto }: CryptoDetailHeaderProps) {
                 <Badge variant="secondary" className="text-xs">
                   Rank #{Math.floor(Math.random() * 100) + 1}
                 </Badge>
-              </div>
-              <div className="flex items-center gap-4 mt-1">
-                <div className="text-right">
-                  <div className="text-2xl font-bold">${formatPrice(crypto.price)}</div>
-                  <div className="flex items-center gap-1">
-                    {crypto.changePercent24h > 0 ? (
-                      <ArrowUpIcon className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <ArrowDownIcon className="h-4 w-4 text-red-500" />
-                    )}
-                    <span className={crypto.changePercent24h > 0 ? "text-green-500" : "text-red-500"}>
-                      {crypto.changePercent24h > 0 ? "+" : ""}${crypto.change24h.toFixed(6)} (
-                      {crypto.changePercent24h.toFixed(2)}%)
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-sm text-muted-foreground">
-                  <div>Market Cap: {formatMarketCap(crypto.marketCap)}</div>
-                  <div>24h Volume: ${(crypto.volume24h / 1e9).toFixed(2)}B</div>
-                </div>
               </div>
             </div>
           </div>
