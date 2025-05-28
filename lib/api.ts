@@ -287,7 +287,7 @@ export async function getTopCryptos(): Promise<CryptoData[]> {
 export async function getMarketNews(category = "general"): Promise<NewsItem[]> {
   try {
     // Use Finnhub's market news endpoint
-    const data = await finnhubRequest('/news', { category: 'general' })
+    const data = await finnhubRequest('/news', { category })
 
     return data.slice(0, 20).map((article: any, index: number) => ({
       id: article.id?.toString() || `${index}`,

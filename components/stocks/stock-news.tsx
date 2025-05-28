@@ -17,7 +17,7 @@ export function StockNews({ symbol }: StockNewsProps) {
   useEffect(() => {
     async function fetchNews() {
       try {
-        const data = await getMarketNews("business")
+        const data = await getMarketNews(symbol)
         setNews(data.slice(0, 5))
       } catch (error) {
         console.error("Error fetching news:", error)
