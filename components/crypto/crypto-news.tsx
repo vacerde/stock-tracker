@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Clock, TrendingUp, TrendingDown } from "lucide-react"
+import { ExternalLink, Clock, TrendingUp, TrendingDown, AlertCircle } from "lucide-react"
 
 interface CryptoNewsProps {
   symbol: string
@@ -21,13 +21,192 @@ interface NewsItem {
   category: string
 }
 
+interface CryptoNewsAPIResponse {
+  data: Array<{
+    id: string
+    attributes: {
+      title: string
+      teaser: string
+      url: string
+      created_at: string
+      domain: string
+    }
+  }>
+}
+
 export function CryptoNews({ symbol }: CryptoNewsProps) {
   const [news, setNews] = useState<NewsItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
 
-  // Simulated news data - replace with real API call
-  useEffect(() => {
-    const simulatedNews: NewsItem[] = [
+  // Function to determine sentiment based on title and summary
+  const analyzeSentiment = (title: string, summary: string): number => {
+    const text = (title + " " + summary).toLowerCase()
+    
+    const bullishKeywords = [
+      'bullish', 'surge', 'rally', 'moon', 'pump', 'rise', 'up', 'gain', 'growth', 
+      'adoption', 'breakthrough', 'partnership', 'upgrade', 'positive', 'boost',
+      'milestone', 'record', 'high', 'institutional', 'investment'
+    ]
+    
+    const bearishKeywords = [
+      'bearish', 'crash', 'dump', 'fall', 'down', 'drop', 'decline', 'loss',
+      'regulation', 'ban', 'hack', 'scam', 'negative', 'concern', 'worry',
+      'investigation', 'lawsuit', 'fraud', 'risk', 'warning'
+    ]
+    
+    let bullishScore = 0
+    let bearishScore = 0
+    
+    bullishKeywords.forEach(keyword => {
+      if (text.includes(keyword)) bullishScore++
+    })
+    
+    bearishKeywords.forEach(keyword => {
+      if (text.includes(keyword)) bearishScore++
+    })
+    
+    if (bullishScore > bearishScore) return Math.min(0.8, bullishScore * 0.2)
+    if (bearishScore > bullishScore) return Math.max(-0.8, -bearishScore * 0.2)
+    return 0
+  }
+
+  // Function to categorize news based on content
+  const categorizeNews = (title: string, summary: string): string => {
+    const text = (title + " " + summary).toLowerCase()
+    
+    if (text.includes('regulation') || text.includes('sec') || text.includes('government') || text.includes('legal')) {
+      return 'regulatory'
+    }
+    if (text.includes('technical') || text.includes('chart') || text.includes('resistance') || text.includes('support')) {
+      return 'technical'
+    }
+    if (text.includes('adoption') || text.includes('partnership') || text.includes('institution')) {
+      return 'adoption'
+    }
+    if (text.includes('development') || text.includes('upgrade') || text.includes('protocol') || text.includes('network')) {
+      return 'development'
+    }
+    return 'analysis'
+  }
+
+  // Fetch news from CryptoPanic API (free tier)
+  const fetchCryptoNews = async (pageNum: number = 1) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Using CryptoPanic API - you'll need to get a free API key from https://cryptopanic.com/developers/api/
+      const API_KEY = process.env.NEXT_PUBLIC_CRYPTOPANIC_API_KEY || 'free' // Use 'free' for limited requests
+      
+      // CryptoPanic API endpoint
+      const response = await fetch(
+        `https://cryptopanic.com/api/v1/posts/?auth_token=${API_KEY}&public=true&currencies=${symbol}&page=${pageNum}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: CryptoNewsAPIResponse = await response.json()
+      
+      const processedNews: NewsItem[] = data.data.map((item, index) => ({
+        id: item.id || `${pageNum}-${index}`,
+        title: item.attributes.title,
+        summary: item.attributes.teaser || item.attributes.title,
+        url: item.attributes.url,
+        source: item.attributes.domain || 'Unknown',
+        publishedAt: item.attributes.created_at,
+        sentiment: analyzeSentiment(item.attributes.title, item.attributes.teaser || ''),
+        category: categorizeNews(item.attributes.title, item.attributes.teaser || ''),
+      }))
+
+      if (pageNum === 1) {
+        setNews(processedNews)
+      } else {
+        setNews(prev => [...prev, ...processedNews])
+      }
+
+    } catch (err) {
+      console.error('Error fetching crypto news:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch news')
+      
+      // Fallback to simulated data if API fails
+      if (pageNum === 1) {
+        setNews(getSimulatedNews())
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Alternative: Using NewsAPI (requires API key)
+  const fetchNewsAPI = async (pageNum: number = 1) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const API_KEY = process.env.NEXT_PUBLIC_NEWS_API_KEY
+      if (!API_KEY) {
+        throw new Error('NewsAPI key not found')
+      }
+
+      const response = await fetch(
+        `https://newsapi.org/v2/everything?q=${symbol}+cryptocurrency&sortBy=publishedAt&page=${pageNum}&pageSize=10&apiKey=${API_KEY}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      const processedNews: NewsItem[] = data.articles.map((article: any, index: number) => ({
+        id: `${pageNum}-${index}`,
+        title: article.title,
+        summary: article.description || article.title,
+        url: article.url,
+        source: article.source.name,
+        publishedAt: article.publishedAt,
+        sentiment: analyzeSentiment(article.title, article.description || ''),
+        category: categorizeNews(article.title, article.description || ''),
+      }))
+
+      if (pageNum === 1) {
+        setNews(processedNews)
+      } else {
+        setNews(prev => [...prev, ...processedNews])
+      }
+
+    } catch (err) {
+      console.error('Error fetching news:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch news')
+      
+      // Fallback to simulated data if API fails
+      if (pageNum === 1) {
+        setNews(getSimulatedNews())
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fallback simulated data
+  const getSimulatedNews = (): NewsItem[] => {
+    return [
       {
         id: "1",
         title: `${symbol} Sees Major Institutional Adoption as Payment Method`,
@@ -58,33 +237,20 @@ export function CryptoNews({ symbol }: CryptoNewsProps) {
         sentiment: -0.2,
         category: "regulatory",
       },
-      {
-        id: "4",
-        title: `${symbol} Network Upgrade Scheduled for Next Month`,
-        summary: `Developers announce major network improvements that could enhance scalability and reduce transaction fees.`,
-        url: "#",
-        source: "DevUpdate",
-        publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-        sentiment: 0.7,
-        category: "development",
-      },
-      {
-        id: "5",
-        title: `Market Analysis: ${symbol} Correlation with Traditional Assets`,
-        summary: `Recent data shows changing correlation patterns between cryptocurrency and traditional financial markets.`,
-        url: "#",
-        source: "MarketWatch",
-        publishedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-        sentiment: 0.1,
-        category: "analysis",
-      },
     ]
+  }
 
-    setTimeout(() => {
-      setNews(simulatedNews)
-      setLoading(false)
-    }, 1000)
+  useEffect(() => {
+    setPage(1)
+    fetchCryptoNews(1)
+    // Alternative: Use fetchNewsAPI(1) if you prefer NewsAPI
   }, [symbol])
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1
+    setPage(nextPage)
+    fetchCryptoNews(nextPage)
+  }
 
   const getSentimentIcon = (sentiment: number) => {
     if (sentiment > 0.3) return <TrendingUp className="h-3 w-3 text-green-500" />
@@ -123,11 +289,11 @@ export function CryptoNews({ symbol }: CryptoNewsProps) {
     return `${Math.floor(diffInHours / 24)}d ago`
   }
 
-  if (loading) {
+  if (loading && news.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Latest News</CardTitle>
+          <CardTitle>Latest {symbol} News</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -148,11 +314,20 @@ export function CryptoNews({ symbol }: CryptoNewsProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Latest {symbol} News</CardTitle>
-        <Button variant="outline" size="sm">
-          View All
+        <Button variant="outline" size="sm" onClick={() => fetchCryptoNews(1)}>
+          Refresh
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <span className="text-sm text-yellow-800">
+              {error} - Showing cached data
+            </span>
+          </div>
+        )}
+
         {news.map((article) => (
           <div
             key={article.id}
@@ -195,8 +370,13 @@ export function CryptoNews({ symbol }: CryptoNewsProps) {
 
         <div className="pt-4 border-t">
           <div className="text-center">
-            <Button variant="outline" className="w-full">
-              Load More News
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleLoadMore}
+              disabled={loading}
+            >
+              {loading ? "Loading..." : "Load More News"}
             </Button>
           </div>
         </div>
